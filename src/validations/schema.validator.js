@@ -9,6 +9,7 @@ const property = {
 const validation = (schema, prop = property.BODY) => {
   return (req, res, next) => {
     const { error, value } = schema.validate(req[prop]);
+    console.log('validate', prop)
     if (error) {
       if (error.details[0].type === 'any.required') {
         return res.status(400).json({

@@ -1,82 +1,23 @@
+import * as controller from '../controller/book.controller.js'
+
 const express = require('express')
 const router = express.Router();
-const { config, executeQuery } = require('../config/db')
+const { config } = require('../config/db')
 const sql = require('mssql');
 
 const { formatDate } = require('../utils/date.util');
-const { addBookBodySchema, bookIdSchema } = require('../validations/schemas/book.schema');
+const { addBookBodySchema, bookIdSchema, searchBookSchema } = require('../validations/schemas/book.schema');
 const { validation, property } = require('../validations/schema.validator');
 
 
-// 📚 Book Management
 // TASK-04 GET /books & /books?category=&status= — Filter + Search หนังสือ หรือ ดึงหนังสือทั้งหมด (พร้อม Category, Status, Publisher, Merchant)
-// TASK-05 GET /books/:id — ดึงหนังสือรายเล่ม
-// TASK-06 POST /books — เพิ่มหนังสือ
-// TASK-07 PUT /books/:id — แก้ไขข้อมูลหนังสือ
-// TASK-08 DELETE /books/:id — ลบหนังสือ
-
-// TASK-04 GET /books & /books?category=&status= — Filter + Search หนังสือ หรือ ดึงหนังสือทั้งหมด (พร้อม Category, Status, Publisher, Merchant)
-router.get('/', async (req, res) => {
-    try {
-        const { category, status, merchant, publisher } = req.query;
-
-        // Build WHERE clause dynamically based on provided filters
-        let whereClause = 'WHERE 1=1';
-
-        if (category) {
-            whereClause += ' AND category_id = @category';
-            request.input('category', sql.Int, +category);
-        }
-        if (status) {
-            whereClause += ' AND status = @status';
-            request.input('status', sql.NVarChar, status);
-        }
-        if (merchant) {
-            whereClause += ' AND merchant_id = @merchant';
-            request.input('merchant', sql.Int, +merchant);
-        }
-        if (publisher) {
-            whereClause += ' AND publisher_id = @publisher';
-            request.input('publisher', sql.Int, +publisher);
-        }
-
-        const bookList = await executeQuery(`
-        SELECT 
-            b.*,
-            c.category_name,
-            s.status_name,
-            m.merchant_name,
-            p.publisher_name
-        FROM Book b
-        LEFT JOIN Category c ON b.category_id = c.category_id
-        LEFT JOIN Status s ON b.status_id = s.status_id
-        LEFT JOIN Merchant m ON b.merchant_id = m.merchant_id
-        LEFT JOIN Publisher p ON b.publisher_id = p.publisher_id
-        ${whereClause}`);
-
-        const result = bookList.length === 0 ? [] : bookList.map(book => ({
-            ...book,
-            purchase_date: formatDate(book.purchase_date, res),
-            category: book.category_name,
-            status: book.status_name,
-            merchant: book.merchant_name,
-            publisher: book.publisher_name
-        }));
-
-        return res.status(200).json({
-            code: '20010',
-            message: 'Successfully with data.',
-            result
-        });
-
-    } catch (error) {
-        console.error('error', error)
-        return res.status(500).json({
-            code: 50000,
-            message: 'Internal Error',
-        });;
-    }
-})
+/**
+ * @swagger
+ * /api/books:
+ *   get:
+ *     summary: Search Books
+ */
+router.get('/', validation(searchBookSchema, property.QUERY), controller.getBookListController)
 
 // TASK-05 GET /books/:id — ดึงหนังสือรายเล่ม
 router.get('/:id', validation(bookIdSchema, property.PARAMS), async (req, res) => {
