@@ -1,16 +1,15 @@
-require('dotenv').config()
+import express from 'express'
+import cors from 'cors'
+import bodyParser from 'body-parser'
+import { sqlServer } from './db-connect.js'
+import { swaggerUi, swaggerSpec } from './swaggerConfig.js'
+
 import * as bookRoutes from './routes/book.route.js'
 import * as configRoutes from './routes/config.route.js'
-
-const express = require('express')
-const cors = require('cors')
-const bodyParser = require('body-parser')
-const { connect } = require('./config/db')
 
 const app = express()
 const port = 3333
 
-const { swaggerUi, swaggerSpec } = require('./swaggerConfig.js')
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(bodyParser.json())
@@ -23,9 +22,9 @@ app.use('/config', configRoutes.router)
 
 
 app.listen(port, () => {
-    connect()
-        .then((connection) => {
-            console.log('connected to databse')
+    sqlServer.authenticate()
+        .then(() => {
+            console.log('connected to database')
         })
         .catch((err) => {
             console.log('err', err)

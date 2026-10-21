@@ -5,7 +5,7 @@ const path = require('path');
 // Swagger setup
 const swaggerOptions = {
     swaggerDefinition: {
-        myapi: '1.0.0',
+        openapi: '3.0.0',
         info: {
             title: 'My API',
             version: '1.0.0',

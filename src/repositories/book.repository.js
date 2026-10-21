@@ -1,43 +1,82 @@
-import sql from 'mssql'
+import { findAll, query, create, update, destroy } from './sql.repository.js'
+import { Book } from '../models/index.js'
 
-const getBookList = async (request, criteria) => {
-    console.log('getBookList category.repository')
+const getBookList = async (req, criteria) => {
+    console.log('getBookList book.repository')
 
-    try {
-        const { page, limit, sortBy, orderBy, search } = criteria
+    const { page, limit, sortBy, orderBy, search } = criteria
 
-        const pageNumber = Number(page)
-        const pageSize = Number(limit)
-        const offset = (pageNumber - 1) * pageSize
+    const pageSize = Number(limit)
+    const offset = (Number(page) - 1) * pageSize
 
-        const searchText = search?.trim()
+    return findAll({
+        model: Book,
+        options: {
+            order: [[sortBy, orderBy]],
+            limit: pageSize,
+            offset,
+            search: { fields: ['title', 'author'], value: search }
+        },
+        req,
+        event: 'getBookList'
+    })
+}
 
+const getBookDetail = async (req, bookId) => {
+    console.log('getBookDetail book.repository')
 
-        let whereClause = ''
+    return query({
+        sql: `
+            SELECT
+                b.*,
+                c.category_name,
+                s.status_name,
+                m.merchant_name,
+                p.publisher_name
+            FROM Book b
+                LEFT JOIN Category c ON b.category_id = c.category_id
+                LEFT JOIN Status s ON b.status_id = s.status_id
+                LEFT JOIN Merchant m ON b.merchant_id = m.merchant_id
+                LEFT JOIN Publisher p ON b.publisher_id = p.publisher_id
+            WHERE
+                b.book_id = :bookId
+        `,
+        replacements: { bookId },
+        req,
+        event: 'getBookDetail'
+    })
+}
 
-        request.input('offset', sql.BigInt, offset)
-        request.input('limit', sql.Int, pageSize)
+const addBook = async (req, data) => {
+    console.log('addBook book.repository')
 
-        if (searchText) {
-            whereClause = 'WHERE c.category_name LIKE @search'
-            request.input('search', sql.NVarChar(258), `%${searchText}%`)
-        }
+    return create({ model: Book, data, req, event: 'addBook' })
+}
 
-        const result = await request.query(`
-                    SELECT b.*
-                    FROM Book b
-                    ${whereClause}
-                    ORDER BY b.[${sortBy}] ${orderBy}
-                    OFFSET @offset ROWS
-                    FETCH NEXT @limit ROWS ONLY;
-                `)
-        return result?.recordsets || []
-    } catch (err) {
-        throw err
-    }
+const editBook = async (req, bookId, data) => {
+    console.log('editBook book.repository')
 
+    return update({ model: Book, data, criteria: { book_id: bookId }, req, event: 'editBook' })
+}
+
+const removeBook = async (req, bookId) => {
+    console.log('removeBook book.repository')
+
+    return query({
+        sql: `
+            EXEC dbo.sp_DeleteBookReview
+                @book_id = :bookId,
+        `,
+        replacements: { bookId },
+        req,
+        event: 'removeBook'
+    })
 }
 
 export {
-    getBookList
+    getBookList,
+    getBookDetail,
+    addBook,
+    editBook,
+    removeBook,
 }

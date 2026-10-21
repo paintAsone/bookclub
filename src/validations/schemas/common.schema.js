@@ -23,4 +23,5 @@ const commonSearchSchema = Joi.object({
 
 export {
     commonSearchSchema,
+    requiredErrorMessage,
 }

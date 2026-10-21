@@ -1,267 +1,421 @@
+import express from 'express'
 import * as controller from '../controller/book.controller.js'
 
-const express = require('express')
+import { addBookBodySchema, addBookReviewBodySchema, bookIdSchema, searchBookSchema, bookReviewIdSchema } from '../validations/schemas/book.schema.js'
+import { validation, property } from '../validations/schema.validator.js'
+
 const router = express.Router();
-const { config } = require('../config/db')
-const sql = require('mssql');
 
-const { formatDate } = require('../utils/date.util');
-const { addBookBodySchema, bookIdSchema, searchBookSchema } = require('../validations/schemas/book.schema');
-const { validation, property } = require('../validations/schema.validator');
-
-
-// TASK-04 GET /books & /books?category=&status= — Filter + Search หนังสือ หรือ ดึงหนังสือทั้งหมด (พร้อม Category, Status, Publisher, Merchant)
 /**
  * @swagger
- * /api/books:
- *   get:
- *     summary: Search Books
+ * tags:
+ *   - name: Books
+ *     description: Book management
+ *   - name: Config
+ *     description: Master data / configuration
+ * components:
+ *   parameters:
+ *     Page:
+ *       in: query
+ *       name: page
+ *       required: true
+ *       schema: { type: number, example: 1 }
+ *       description: Page number (starts at 1)
+ *     Limit:
+ *       in: query
+ *       name: limit
+ *       required: true
+ *       schema: { type: number, example: 10 }
+ *       description: Items per page
+ *     SortBy:
+ *       in: query
+ *       name: sortBy
+ *       required: true
+ *       schema: { type: string, example: category_id }
+ *       description: Column name to sort by
+ *     OrderBy:
+ *       in: query
+ *       name: orderBy
+ *       required: true
+ *       schema: { type: string, enum: [ASC, DESC], example: ASC }
+ *       description: Sort direction
+ *     Search:
+ *       in: query
+ *       name: search
+ *       required: false
+ *       schema: { type: string, maxLength: 256 }
+ *       description: Free-text search keyword
+ *     BookId:
+ *       in: path
+ *       name: id
+ *       required: true
+ *       schema: { type: integer, example: 1 }
+ *       description: Book ID
+ *     BookReviewId:
+ *       in: path
+ *       name: bookReviewId
+ *       required: true
+ *       schema: { type: integer, example: 1 }
+ *       description: Book review ID
+ *   schemas:
+ *     Book:
+ *       type: object
+ *       properties:
+ *         book_id: { type: integer, example: 1 }
+ *         title: { type: string, example: Clean Code }
+ *         author: { type: string, example: Robert C. Martin }
+ *         price: { type: number, format: double, example: 450.00 }
+ *         purchase_date: { type: string, format: date, nullable: true, example: "2024-01-31" }
+ *         summary: { type: string, nullable: true }
+ *         category_id: { type: integer, nullable: true }
+ *         status_id: { type: integer, nullable: true }
+ *         merchant_id: { type: integer, nullable: true }
+ *         publisher_id: { type: integer, nullable: true }
+ *         created_date: { type: string, format: date-time }
+ *         updated_date: { type: string, format: date-time }
+ *     BookDetail:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Book'
+ *         - type: object
+ *           properties:
+ *             category: { type: string, nullable: true }
+ *             status: { type: string, nullable: true }
+ *             merchant: { type: string, nullable: true }
+ *             publisher: { type: string, nullable: true }
+ *     BookReviewDetail:
+ *       type: object
+ *       required: [book_review_id, book_id, rating]
+ *       properties:
+ *             book_review_id: { type: integer, example: 1 }
+ *             book_id: { type: integer, example: 1 }
+ *             rating: { type: number, example: 5 }
+ *             review_comment: { type: string, example: Very good book }
+ *             review_date: { type: string, format: date, nullable: false, example: "2024-01-31" }
+ *             created_date: { type: string, format: date, nullable: true, example: "2024-01-31" }
+ *             updated_date: { type: string, format: date, nullable: true, example: "2024-01-31" }
+ *     BookInput:
+ *       type: object
+ *       required: [title, author, price]
+ *       properties:
+ *         title: { type: string, example: Clean Code }
+ *         author: { type: string, example: Robert C. Martin }
+ *         price: { type: number, example: 450 }
+ *         purchase_date: { type: string, format: date, nullable: true, example: "2024-01-31" }
+ *         summary: { type: string, nullable: true }
+ *         category_id: { type: integer }
+ *         status_id: { type: integer }
+ *         merchant_id: { type: integer }
+ *         publisher_id: { type: integer }
+ *     Category:
+ *       type: object
+ *       properties:
+ *         category_id: { type: integer, example: 1 }
+ *         category_name: { type: string }
+ *         category_description: { type: string }
+ *         created_date: { type: string, format: date-time }
+ *         updated_date: { type: string, format: date-time }
+ *     SuccessMessage:
+ *       type: object
+ *       properties:
+ *         code: { type: string, example: "20000" }
+ *         message: { type: string, example: Successfully update book. }
+ *     ValidationError:
+ *       type: object
+ *       properties:
+ *         status: { type: integer, description: "40001 = missing required field, 40002 = invalid value", example: 40001 }
+ *         message: { type: string, example: page is required. }
+ *     NotFoundError:
+ *       type: object
+ *       properties:
+ *         code: { type: integer, example: 40400 }
+ *         message: { type: string, example: data not found }
+ *     InternalError:
+ *       type: object
+ *       properties:
+ *         code: { type: integer, example: 50000 }
+ *         message: { type: string, example: Internal Error }
+ *   responses:
+ *     ValidationError:
+ *       description: Validation error
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/ValidationError' }
+ *     NotFound:
+ *       description: Book not found
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/NotFoundError' }
+ *     InternalError:
+ *       description: Internal server error
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/InternalError' }
  */
-router.get('/', validation(searchBookSchema, property.QUERY), controller.getBookListController)
 
-// TASK-05 GET /books/:id — ดึงหนังสือรายเล่ม
-router.get('/:id', validation(bookIdSchema, property.PARAMS), async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        const pool = await sql.connect(config);
-        const request = pool.request();
+/**
+ * @swagger
+ * /books:
+ *   get:
+ *     tags: [Books]
+ *     summary: Search books
+ *     description: Returns a paginated list of books. `search` matches title and author.
+ *     parameters:
+ *       - $ref: '#/components/parameters/Page'
+ *       - $ref: '#/components/parameters/Limit'
+ *       - $ref: '#/components/parameters/SortBy'
+ *       - $ref: '#/components/parameters/OrderBy'
+ *       - $ref: '#/components/parameters/Search'
+ *       - in: query
+ *         name: category_id
+ *         schema: { type: number }
+ *         description: Filter by category ID
+ *       - in: query
+ *         name: status_id
+ *         schema: { type: number }
+ *         description: Filter by status ID
+ *       - in: query
+ *         name: merchant_id
+ *         schema: { type: number }
+ *         description: Filter by merchant ID
+ *       - in: query
+ *         name: publisher_id
+ *         schema: { type: number }
+ *         description: Filter by publisher ID
+ *     responses:
+ *       200:
+ *         description: Successfully with data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 20010 }
+ *                 message: { type: string, example: Successfully with data. }
+ *                 result:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/Book' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.get('/', validation(searchBookSchema, property.QUERY), controller.getBookList)
 
-        try {
-            const findBookResult = await request
-                .input('id', sql.Int, id)
-                .query(`SELECT 
-                                b.*,
-                                c.category_name,
-                                s.status_name,
-                                m.merchant_name,
-                                p.publisher_name
-                            FROM Book b
-                            LEFT JOIN Category c ON b.category_id = c.category_id
-                            LEFT JOIN Status s ON b.status_id = s.status_id
-                            LEFT JOIN Merchant m ON b.merchant_id = m.merchant_id
-                            LEFT JOIN Publisher p ON b.publisher_id = p.publisher_id
-                            WHERE b.book_id = @id`);
+/**
+ * @swagger
+ * /books/{id}:
+ *   get:
+ *     tags: [Books]
+ *     summary: Get book by ID
+ *     description: Returns a single book with its category, status, merchant and publisher names.
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *     responses:
+ *       200:
+ *         description: Successfully with data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 20010 }
+ *                 message: { type: string, example: Successfully with data. }
+ *                 result: { $ref: '#/components/schemas/BookDetail' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.get('/:id', validation(bookIdSchema, property.PARAMS), controller.getBookDetail)
 
-            if (findBookResult.recordset.length === 0) {
-                return res.status(404).json({
-                    code: 40400,
-                    message: `data not found`
-                });
-            }
+/**
+ * @swagger
+ * /books:
+ *   post:
+ *     tags: [Books]
+ *     summary: Add a book
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/BookInput' }
+ *     responses:
+ *       201:
+ *         description: Book created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: string, example: "20001" }
+ *                 message: { type: string, example: Successfully add book. }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.post('/', validation(addBookBodySchema, property.BODY), controller.addBook)
 
-            book = findBookResult.recordset
+/**
+ * @swagger
+ * /books/{id}:
+ *   put:
+ *     tags: [Books]
+ *     summary: Update a book
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { $ref: '#/components/schemas/BookInput' }
+ *     responses:
+ *       200:
+ *         description: Book updated
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/SuccessMessage' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.put('/:id', validation(bookIdSchema, property.PARAMS), validation(addBookBodySchema, property.BODY), controller.editBook)
 
+/**
+ * @swagger
+ * /books/{id}:
+ *   delete:
+ *     tags: [Books]
+ *     summary: Delete a book
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *     responses:
+ *       200:
+ *         description: Book deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: string, example: "20000" }
+ *                 message: { type: string, example: Successfully remove book. }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.delete('/:id', validation(bookIdSchema, property.PARAMS), controller.removeBook)
 
-        } catch (error) {
-            console.error(error)
-            return res.status(404).json({
-                code: 40400,
-                message: `data not found`
-            });
-        }
+/**
+ * @swagger
+ * /books/{id}/reviews:
+ *   get:
+ *     tags: [Books]
+ *     summary: Get book reviews by book by ID
+ *     description: Returns list of reviews of the book.
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *     responses:
+ *       200:
+ *         description: Successfully with data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 20010 }
+ *                 message: { type: string, example: Successfully with data. }
+ *                 result: { $ref: '#/components/schemas/BookReviewDetail' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.get('/:id/reviews', validation(bookIdSchema, property.PARAMS), controller.getBookReviewList)
 
-        const resultBook = book[0]
-        const result = {
-            ...resultBook,
-            purchase_date: formatDate(resultBook.purchase_date, res),
-            category: resultBook.category_name,
-            status: resultBook.status_name,
-            merchant: resultBook.merchant_name,
-            publisher: resultBook.publisher_name
-        };
+/**
+ * @swagger
+ * /books/{id}/reviews:
+ *   post:
+ *     tags: [Books]
+ *     summary: Add a book review
+ *     description: Calls stored procedure `sp_AddBookReview`. Adds the review and sets the book's status_id to 4 in one transaction.
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rating]
+ *             properties:
+ *               rating: { type: integer, minimum: 1, maximum: 5, example: 5 }
+ *               review_comment: { type: string, maxLength: 255, nullable: true, example: Very good book }
+ *               review_date: { type: string, format: date, nullable: true, description: Defaults to today, example: "2024-01-31" }
+ *     responses:
+ *       201:
+ *         description: Review created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: string, example: "20001" }
+ *                 message: { type: string, example: Successfully add book review. }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.post('/:id/reviews', validation(bookIdSchema, property.PARAMS), validation(addBookReviewBodySchema, property.BODY), controller.addBookReview)
 
+/**
+ * @swagger
+ * /books/{id}/reviews/{bookReviewId}:
+ *   put:
+ *     tags: [Books]
+ *     summary: Update a book review
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *       - $ref: '#/components/parameters/BookReviewId'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rating]
+ *             properties:
+ *               rating: { type: integer, minimum: 1, maximum: 5, example: 5 }
+ *               review_comment: { type: string, maxLength: 255, nullable: true, example: Very good book }
+ *               review_date: { type: string, format: date, nullable: true, example: "2024-01-31" }
+ *     responses:
+ *       200:
+ *         description: Review updated
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/SuccessMessage' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.put('/:id/reviews/:bookReviewId', validation(bookReviewIdSchema, property.PARAMS), validation(addBookReviewBodySchema, property.BODY), controller.editBookReview)
 
-        return res.status(200).json({
-            code: '20010',
-            message: 'Successfully with data.',
-            result
-        });
+/**
+ * @swagger
+ * /books/{id}/reviews/{bookReviewId}:
+ *   delete:
+ *     tags: [Books]
+ *     summary: Delete Book Review
+ *     description: Calls stored procedure `sp_DeleteBookReview`. Deleete the review and sets the book's status_id to 3 if the book has no review left.
+ *     parameters:
+ *       - $ref: '#/components/parameters/BookId'
+ *       - $ref: '#/components/parameters/BookReviewId'
+ *     responses:
+ *       200:
+ *         description: Review deleted
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/SuccessMessage' }
+ *       400: { $ref: '#/components/responses/ValidationError' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.delete('/:id/reviews/:bookReviewId', validation(bookReviewIdSchema, property.PARAMS), controller.removeBookReview)
 
-
-    } catch (error) {
-        console.error('error', error)
-        return res.status(500).json({
-            code: 50000,
-            message: 'Internal Error',
-        });
-    }
-})
-
-// TASK-06 POST /books — เพิ่มหนังสือ
-router.post('/', validation(addBookBodySchema, property.BODY), async (req, res) => {
-    try {
-        const { title, author, price } = req.body;
-
-        const pool = await sql.connect(config);
-        const request = pool.request();
-
-        const results = await request
-            .input('title', sql.NVarChar, title)
-            .input('author', sql.NVarChar, author)
-            .input('price', sql.Decimal(10, 2), price)
-            .query(`
-                INSERT INTO Book (title, author, price) 
-                VALUES (@title, @author, @price)
-            `)
-
-        return res.status(201).json({
-            code: '20001',
-            message: 'Successfully add book.'
-        });
-    } catch (error) {
-        console.error('error', error)
-        return res.status(500).json({
-            code: 50000,
-            message: 'Internal Error',
-        });
-    }
-})
-
-// TASK-07 PUT /books/:id — แก้ไขข้อมูลหนังสือ
-router.put('/:id', validation(bookIdSchema, property.PARAMS), validation(addBookBodySchema, property.BODY), async (req, res) => {
-    try {
-        const pool = await sql.connect(config);
-        const request = pool.request();
-
-        const id = +req.params.id || 0;
-
-        try {
-            const isBookExisted = await request.input('id', sql.Int, id)
-                .query(`SELECT * FROM Book WHERE Book.book_id = @id`);
-            if (isBookExisted.recordset.length === 0) {
-                return res.status(404).json({
-                    code: 40400,
-                    message: `data not found`
-                });
-            }
-        } catch (error) {
-            console.error('error', error)
-            return res.status(500).json({
-                code: 50000,
-                message: 'Internal Error',
-            });
-        }
-
-
-        // Define field to SQL type mapping
-        const fieldTypeMap = {
-            title: sql.NVarChar,
-            author: sql.NVarChar,
-            price: () => sql.Decimal(10, 2),
-            purchase_date: sql.DateTime2,
-            summary: sql.NVarChar,
-            category_id: sql.Int,
-            status_id: sql.Int,
-            merchant_id: sql.Int,
-            publisher_id: sql.Int,
-        };
-
-        // Build SET clause dynamically
-        const setFields = [];
-
-        const editRequest = pool.request();
-        editRequest.input('id', sql.Int, id);
-
-        for (const [field, value] of Object.entries(req.body)) {
-            if (field in fieldTypeMap && value !== undefined) {
-                setFields.push(`${field} = @${field}`);
-                const fieldType = fieldTypeMap[field];
-                const sqlType = typeof fieldType === 'function' ? fieldType() : fieldType;
-                editRequest.input(field, sqlType, value);
-            }
-        }
-
-        if (setFields.length === 0) {
-            console.error('error', error)
-            return res.status(500).json({
-                code: 50000,
-                message: 'Update field error',
-            });
-        }
-
-        try {
-            const query = `
-            UPDATE Book
-            SET ${setFields.join(', ')}
-            WHERE Book.book_id = @id
-        `;
-
-            const results = await editRequest.query(query);
-
-            return res.status(200).json({
-                code: 20001,
-                message: 'Edit book successfully.'
-            })
-        } catch (error) {
-            console.error('error', error)
-            return res.status(500).json({
-                code: 50000,
-                message: 'Error Updating Book.',
-            });
-        }
-
-    } catch (error) {
-        console.error('error', error)
-        return res.status(500).json({
-            code: 50000,
-            message: 'Internal Error',
-        });
-    }
-})
-
-// TASK-08 DELETE /books/:id — ลบหนังสือ
-router.delete('/:id', validation(bookIdSchema, property.PARAMS), async (req, res) => {
-    try {
-        const pool = await sql.connect(config);
-        const request = pool.request();
-
-        const id = +req.params.id;
-
-        try {
-            const isBookExisted = await request.input('id', sql.Int, id)
-                .query(`SELECT * FROM Book WHERE Book.book_id = @id`);
-            if (isBookExisted.recordset.length === 0) {
-                return res.status(404).json({
-                    code: 40400,
-                    message: 'Data not found'
-                });
-            }
-        } catch (error) {
-            console.error('error', error)
-            return res.status(500).json({
-                code: 50000,
-                message: 'Internal Error',
-            });
-        }
-
-        try {
-            const deleteRequest = pool.request();
-            const results = await deleteRequest
-                .input('id', sql.Int, id)
-                .query(`
-                DELETE FROM Book WHERE book_id = @id
-            `)
-
-            res.status(201).json({
-                status: 20001,
-                message: 'Delete book successfully.'
-            })
-        } catch (error) {
-            console.error('error', error)
-            return res.status(500).json({
-                code: 50000,
-                message: 'Internal Error',
-            });
-        }
-
-
-    } catch (error) {
-        console.error('error', error)
-        return res.status(500).json({
-            code: 50000,
-            message: 'Internal Error',
-        });
-    }
-})
-
-module.exports = { router }
+export {
+    router
+}
