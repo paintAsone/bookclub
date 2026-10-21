@@ -141,7 +141,7 @@ const router = express.Router();
  *         application/json:
  *           schema: { $ref: '#/components/schemas/ValidationError' }
  *     NotFound:
- *       description: Book not found
+ *       description: Data not found
  *       content:
  *         application/json:
  *           schema: { $ref: '#/components/schemas/NotFoundError' }
@@ -198,6 +198,39 @@ const router = express.Router();
  *       500: { $ref: '#/components/responses/InternalError' }
  */
 router.get('/', validation(searchBookSchema, property.QUERY), controller.getBookList)
+
+/**
+ * @swagger
+ * /books/stats:
+ *   get:
+ *     tags: [Books]
+ *     summary: Get book statistics
+ *     description: Returns the total money spent on books (`fn_GetTotalMoneySpent`) and the number of books per status (`fn_countBookByStatus`).
+ *     responses:
+ *       200:
+ *         description: Successfully with data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 20010 }
+ *                 message: { type: string, example: Successfully with data. }
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     total_money_spent: { type: number, example: 1250.5 }
+ *                     books_by_status:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           status_id: { type: integer, example: 1 }
+ *                           status_name: { type: string, example: Waiting to Read }
+ *                           total_books: { type: integer, example: 3 }
+ *       500: { $ref: '#/components/responses/InternalError' }
+ */
+router.get('/stats', controller.getBookStats)
 
 /**
  * @swagger

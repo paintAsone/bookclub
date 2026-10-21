@@ -228,12 +228,32 @@ const removeBookReview = async (req, res) => {
     }
 }
 
+const getBookStats = async (req, res) => {
+    console.log('getBookStats book.controller')
+    try {
+        const result = await service.getBookStats(req)
+
+        return res.status(200).json({
+            code: 20010,
+            message: 'Successfully with data.',
+            result
+        })
+    } catch (error) {
+        console.error('Error: getBookStats book.controller', error)
+        return res.status(500).json({
+            code: 50000,
+            message: 'Internal Error',
+        });
+    }
+}
+
 export {
     getBookList,
     getBookDetail,
     addBook,
     editBook,
     removeBook,
+    getBookStats,
     getBookReviewList,
     addBookReview,
     editBookReview,

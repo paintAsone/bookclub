@@ -1,19 +1,9 @@
 import * as repository from '../repositories/index.js'
+import { pickData } from '../utils/data.util.js'
 import { formatDate } from '../utils/date.util.js'
 
 const bookFields = ['title', 'author', 'price', 'purchase_date', 'summary', 'category_id', 'status_id', 'merchant_id', 'publisher_id']
 const bookReviewFields = ['rating', 'review_comment', 'review_date']
-
-// Only whitelisted columns are written; empty strings from the form become NULL
-const pickData = (body, fields) => {
-    const data = {}
-    for (const field of fields) {
-        if (body[field] !== undefined) {
-            data[field] = body[field] === '' ? null : body[field]
-        }
-    }
-    return data
-}
 
 const getBookList = async (req) => {
     console.log('getBookList book.service')
@@ -134,6 +124,11 @@ const removeBookReview = async (req) => {
     return true
 }
 
+const getBookStats = async (req) => {
+    console.log('getBookStats book.service')
+
+    return repository.bookRepository.getBookStats(req)
+}
 
 export {
     getBookList,
@@ -141,6 +136,7 @@ export {
     addBook,
     editBook,
     removeBook,
+    getBookStats,
     getBookReviewList,
     addBookReview,
     editBookReview,

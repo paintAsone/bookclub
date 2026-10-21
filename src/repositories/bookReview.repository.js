@@ -1,6 +1,5 @@
-import { findAll, query } from './sql.repository.js'
+import { findAll, findOne, query, update } from './sql.repository.js'
 import { BookReview } from '../models/index.js'
-
 
 const getBookReviewList = async (req, bookId) => {
     console.log('getBookReviewList bookReview.repository')

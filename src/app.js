@@ -6,6 +6,7 @@ import { swaggerUi, swaggerSpec } from './swaggerConfig.js'
 
 import * as bookRoutes from './routes/book.route.js'
 import * as configRoutes from './routes/config.route.js'
+import * as wishlistRoutes from './routes/wishlist.route.js'
 
 const app = express()
 const port = 3333
@@ -19,6 +20,7 @@ app.use(cors())
 // routes
 app.use('/books', bookRoutes.router)
 app.use('/config', configRoutes.router)
+app.use('/wishlist', wishlistRoutes.router)
 
 
 app.listen(port, () => {
