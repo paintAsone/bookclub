@@ -13,6 +13,16 @@ const SORTABLE_COLUMNS = {
     updated_date: 'w.updated_date',
 }
 
+const sqlExec = {
+    getWishlistCriteria: `
+        WHERE
+            (:search = ''
+            OR w.title LIKE :pattern
+            OR w.author LIKE :pattern
+            OR p.publisher_name LIKE :pattern)
+    `
+}
+
 const getWishlistList = async (req, criteria) => {
     console.log('getWishlistList wishlist.repository')
     try {
@@ -40,15 +50,38 @@ const getWishlistList = async (req, criteria) => {
                 p.publisher_name
             FROM Wishlist w
                 LEFT JOIN Publisher p ON w.publisher_id = p.publisher_id
-            WHERE
-                (:search = ''
-                OR w.title LIKE :pattern
-                OR w.author LIKE :pattern
-                OR p.publisher_name LIKE :pattern)
+            ${sqlExec.getWishlistCriteria}
             ORDER BY ${orderByClause}
             OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY
         `,
             replacements: { search: keyword, pattern, offset, pageSize },
+            req,
+            event: 'getWishlistList'
+        })
+    } catch (err) {
+        throw err
+    }
+
+
+}
+
+const getWishlistListTotal = async (req, criteria) => {
+    console.log('getWishlistListTotal wishlist.repository')
+    try {
+        const { search } = criteria
+
+        const keyword = search ? search.trim() : ''
+        const pattern = `%${keyword}%`
+
+        return query({
+            sql: `
+            SELECT
+                count (*) as total_wishlist
+            FROM Wishlist w
+                LEFT JOIN Publisher p ON w.publisher_id = p.publisher_id
+            ${sqlExec.getWishlistCriteria}
+        `,
+            replacements: { search: keyword, pattern },
             req,
             event: 'getWishlistList'
         })
@@ -203,6 +236,7 @@ const getCheapestWishlistPrice = async (req, wishlistId) => {
 export {
     getCheapestWishlistPrice,
     getWishlistList,
+    getWishlistListTotal,
     getWishlistDetail,
     addWishlist,
     editWishlist,

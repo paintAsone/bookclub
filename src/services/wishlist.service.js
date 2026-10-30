@@ -16,7 +16,13 @@ const getWishlistList = async (req) => {
             search
         }
 
-        return repository.wishlistRepository.getWishlistList(req, criteria)
+        const items = await repository.wishlistRepository.getWishlistList(req, criteria)
+        const [totalItem] = await repository.wishlistRepository.getWishlistListTotal(req, criteria)
+
+        return {
+            items,
+            totalItem: totalItem?.total_wishlist || 0
+        }
     } catch (err) {
         throw err
     }
@@ -51,7 +57,7 @@ const addWishlist = async (req) => {
 const editWishlist = async (req) => {
     console.log('editWishlist wishlist.service')
     try {
-        const wishlistId = +req.params.id || 0
+        const wishlistId = +req.params.id
 
         const wishlists = await repository.wishlistRepository.getWishlistDetail(req, wishlistId)
         if (wishlists.length === 0) {
@@ -72,7 +78,13 @@ const removeWishlist = async (req) => {
     console.log('removeWishlist wishlist.service')
 
     try {
-        const wishlistId = +req.params.id || 0
+        const wishlistId = +req.params.id
+
+        const wishlists = await repository.wishlistRepository.getWishlistDetail(req, wishlistId)
+        if (wishlists.length === 0) {
+            return false
+        }
+
         await repository.wishlistRepository.removeWishlist(req, wishlistId)
     } catch (err) {
         throw err

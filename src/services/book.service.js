@@ -18,7 +18,14 @@ const getBookList = async (req) => {
         search
     }
 
-    return repository.bookRepository.getBookList(req, criteria)
+    const items = await repository.bookRepository.getBookList(req, criteria)
+    const [totalItem] = await repository.bookRepository.getBookListTotalItem(req, criteria)
+
+    return {
+        items,
+        totalItem: totalItem?.total_book || 0
+    }
+
 }
 
 // Returns null when the book does not exist
@@ -65,7 +72,7 @@ const addBook = async (req) => {
 const editBook = async (req) => {
     console.log('editBook book.service')
 
-    const bookId = +req.params.id || 0
+    const bookId = +req.params.id
 
     const books = await repository.bookRepository.getBookDetail(req, bookId)
     if (books.length === 0) {
@@ -80,7 +87,7 @@ const editBook = async (req) => {
 const removeBook = async (req) => {
     console.log('removeBook book.service')
 
-    const bookId = +req.params.id || 0
+    const bookId = +req.params.id
 
     const books = await repository.bookRepository.getBookDetail(req, bookId)
     if (books.length === 0) {
@@ -117,7 +124,7 @@ const editBookReview = async (req) => {
 const removeBookReview = async (req) => {
     console.log('removeBookReview book.service')
 
-    const bookId = +req.params.id || 0
+    const bookId = +req.params.id
     const bookReviewId = +req.params.bookReviewId || 0
 
     await repository.bookReviewRepository.removeBookReview(req, bookId, bookReviewId)

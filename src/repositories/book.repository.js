@@ -21,6 +21,21 @@ const SORTABLE_COLUMNS = {
     updated_date: 'b.updated_date',
 }
 
+const sqlExec = {
+    getBookListCriteria: `
+    WHERE
+                (:search = ''
+                OR b.title LIKE :pattern
+                OR b.author LIKE :pattern
+                OR b.price LIKE :pattern
+                OR c.category_name LIKE :pattern
+                OR m.merchant_name LIKE :pattern
+                OR p.publisher_name LIKE :pattern
+                OR s.status_name LIKE :pattern
+                )
+    `
+}
+
 const getBookList = async (req, criteria) => {
     console.log('getBookList book.repository')
 
@@ -53,14 +68,36 @@ const getBookList = async (req, criteria) => {
                 LEFT JOIN dbo.Merchant AS m ON b.merchant_id = m.merchant_id
                 LEFT JOIN dbo.Publisher AS p ON b.publisher_id = p.publisher_id
                 LEFT JOIN dbo.Status AS s ON b.status_id = s.status_id
-            WHERE
-                (:search = ''
-                OR b.title LIKE :pattern
-                OR b.author LIKE :pattern)
+            ${sqlExec.getBookListCriteria}
             ORDER BY ${orderByClause}
             OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY
         `,
         replacements: { search: keyword, pattern, offset, pageSize },
+        req,
+        event: 'getBookList'
+    })
+}
+
+const getBookListTotalItem = async (req, criteria) => {
+    console.log('getBookList book.repository')
+
+    const { search } = criteria
+
+    const keyword = search ? search.trim() : ''
+    const pattern = `%${keyword}%`
+
+    return query({
+        sql: `
+            SELECT
+                count (*) as total_book
+            FROM dbo.Book AS b
+                LEFT JOIN dbo.Category AS c ON b.category_id = c.category_id
+                LEFT JOIN dbo.Merchant AS m ON b.merchant_id = m.merchant_id
+                LEFT JOIN dbo.Publisher AS p ON b.publisher_id = p.publisher_id
+                LEFT JOIN dbo.Status AS s ON b.status_id = s.status_id
+            ${sqlExec.getBookListCriteria}
+        `,
+        replacements: { search: keyword, pattern },
         req,
         event: 'getBookList'
     })
@@ -159,6 +196,7 @@ const getBookStats = async (req) => {
 
 export {
     getBookList,
+    getBookListTotalItem,
     getBookDetail,
     addBook,
     editBook,
