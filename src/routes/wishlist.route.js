@@ -147,13 +147,11 @@ router.get('/:id/cheapest', validation(wishlistIdSchema, property.PARAMS), contr
 
 /**
  * @swagger
- * /wishlist/{id}:
+ * /wishlist:
  *   post:
  *     tags: [Wishlist]
  *     summary: Add a wishlist item
  *     description: Only `title`, `author`, `remark` and `publisher_id` from the body are saved. The `id` path segment is validated but not used when creating.
- *     parameters:
- *       - $ref: '#/components/parameters/WishlistId'
  *     requestBody:
  *       required: true
  *       content:
@@ -172,7 +170,7 @@ router.get('/:id/cheapest', validation(wishlistIdSchema, property.PARAMS), contr
  *       400: { $ref: '#/components/responses/ValidationError' }
  *       500: { $ref: '#/components/responses/InternalError' }
  */
-router.post('/:id', validation(wishlistIdSchema, property.PARAMS), validation(wishlistBodySchema, property.BODY), controller.addWishlist)
+router.post('/',validation(wishlistBodySchema, property.BODY), controller.addWishlist)
 
 /**
  * @swagger

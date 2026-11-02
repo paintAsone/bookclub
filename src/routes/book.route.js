@@ -31,13 +31,13 @@ const router = express.Router();
  *       in: query
  *       name: sortBy
  *       required: true
- *       schema: { type: string, example: category_id }
+ *       schema: { type: string, example: book_id }
  *       description: Column name to sort by
  *     OrderBy:
  *       in: query
  *       name: orderBy
  *       required: true
- *       schema: { type: string, enum: [ASC, DESC], example: ASC }
+ *       schema: { type: string, enum: [ASC, DESC], example: DESC }
  *       description: Sort direction
  *     Search:
  *       in: query

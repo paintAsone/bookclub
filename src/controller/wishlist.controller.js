@@ -25,6 +25,13 @@ const getWishlistDetail = async (req, res) => {
     try {
         const result = await service.getWishlistDetail(req)
 
+        if(result.length === 0) {
+            return res.status(404).json({
+                code: 40400,
+                message: 'data not found'
+            })
+        }
+
         return res.status(200).json({
             code: '20010',
             message: 'Successfully with data.',

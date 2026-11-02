@@ -22,6 +22,22 @@ const SORTABLE_COLUMNS = {
 }
 
 const sqlExec = {
+    getBookList: 
+    `SELECT
+                b.book_id, 
+                b.title, 
+                b.author, 
+                b.price, 
+                c.category_name, 
+                m.merchant_name, 
+                p.publisher_name, 
+                s.status_name
+            FROM dbo.Book AS b
+                LEFT JOIN dbo.Category AS c ON b.category_id = c.category_id
+                LEFT JOIN dbo.Merchant AS m ON b.merchant_id = m.merchant_id
+                LEFT JOIN dbo.Publisher AS p ON b.publisher_id = p.publisher_id
+                LEFT JOIN dbo.Status AS s ON b.status_id = s.status_id
+    `,
     getBookListCriteria: `
     WHERE
                 (:search = ''
@@ -39,7 +55,7 @@ const sqlExec = {
 const getBookList = async (req, criteria) => {
     console.log('getBookList book.repository')
 
-    const { page, limit, sortBy, orderBy, search } = criteria
+    const { page, limit, sortBy, orderBy, search, category_id, status_id, merchant_id, publisher_id } = criteria
 
     const pageSize = Number(limit)
     const offset = (Number(page) - 1) * pageSize
@@ -52,27 +68,42 @@ const getBookList = async (req, criteria) => {
     const keyword = search ? search.trim() : ''
     const pattern = `%${keyword}%`
 
-    return query({
-        sql: `
-            SELECT
-                b.book_id, 
-                b.title, 
-                b.author, 
-                b.price, 
-                c.category_name, 
-                m.merchant_name, 
-                p.publisher_name, 
-                s.status_name
-            FROM dbo.Book AS b
-                LEFT JOIN dbo.Category AS c ON b.category_id = c.category_id
-                LEFT JOIN dbo.Merchant AS m ON b.merchant_id = m.merchant_id
-                LEFT JOIN dbo.Publisher AS p ON b.publisher_id = p.publisher_id
-                LEFT JOIN dbo.Status AS s ON b.status_id = s.status_id
+    const replacements = { search: keyword, pattern, offset, pageSize }
+
+    let finalSql = `
+            ${sqlExec.getBookList}
             ${sqlExec.getBookListCriteria}
-            ORDER BY ${orderByClause}
-            OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY
-        `,
-        replacements: { search: keyword, pattern, offset, pageSize },
+        `
+
+    if(category_id) {
+        replacements.category_id = category_id
+        finalSql += ` AND b.category_id = :category_id`
+    }
+
+    if(status_id) {
+        replacements.status_id = status_id
+        finalSql += ` AND b.status_id = :status_id`
+    }
+    if(merchant_id) {
+        replacements.merchant_id = merchant_id
+        finalSql += ` AND b.merchant_id = :merchant_id`
+    }
+    if(publisher_id) {
+        replacements.publisher_id = publisher_id
+        finalSql += ` AND b.publisher_id = :publisher_id`
+    }
+
+    finalSql += `
+        ORDER BY ${orderByClause} 
+        OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY
+    `
+
+    console.log('finalSql', finalSql    )
+    console.log({replacements})
+
+    return query({
+        sql: finalSql,
+        replacements,
         req,
         event: 'getBookList'
     })
@@ -81,23 +112,38 @@ const getBookList = async (req, criteria) => {
 const getBookListTotalItem = async (req, criteria) => {
     console.log('getBookList book.repository')
 
-    const { search } = criteria
+    const { search, category_id, status_id, merchant_id, publisher_id } = criteria
 
     const keyword = search ? search.trim() : ''
     const pattern = `%${keyword}%`
+    const replacements = { search: keyword, pattern }
+
+    let finalSql = `
+            ${sqlExec.getBookList}
+            ${sqlExec.getBookListCriteria}
+        `
+
+    if(category_id) {
+        replacements.category_id = category_id
+        finalSql += ` AND b.category_id = :category_id`
+    }
+
+    if(status_id) {
+        replacements.status_id = status_id
+        finalSql += ` AND b.status_id = :status_id`
+    }
+    if(merchant_id) {
+        replacements.merchant_id = merchant_id
+        finalSql += ` AND b.merchant_id = :merchant_id`
+    }
+    if(publisher_id) {
+        replacements.publisher_id = publisher_id
+        finalSql += ` AND b.publisher_id = :publisher_id`
+    }
 
     return query({
-        sql: `
-            SELECT
-                count (*) as total_book
-            FROM dbo.Book AS b
-                LEFT JOIN dbo.Category AS c ON b.category_id = c.category_id
-                LEFT JOIN dbo.Merchant AS m ON b.merchant_id = m.merchant_id
-                LEFT JOIN dbo.Publisher AS p ON b.publisher_id = p.publisher_id
-                LEFT JOIN dbo.Status AS s ON b.status_id = s.status_id
-            ${sqlExec.getBookListCriteria}
-        `,
-        replacements: { search: keyword, pattern },
+        sql: finalSql,
+        replacements,
         req,
         event: 'getBookList'
     })

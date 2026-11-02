@@ -8,14 +8,18 @@ const bookReviewFields = ['rating', 'review_comment', 'review_date']
 const getBookList = async (req) => {
     console.log('getBookList book.service')
 
-    const { page = 1, limit = 10, sortBy = 'category_id', orderBy = 'ASC', search } = req.query
+    const { page = 1, limit = 10, sortBy = 'category_id', orderBy = 'ASC', search, category_id, status_id, merchant_id, publisher_id } = req.query
 
     const criteria = {
         page,
         limit,
         sortBy,
         orderBy,
-        search
+        search,
+        category_id,
+        status_id,
+        merchant_id,
+        publisher_id
     }
 
     const items = await repository.bookRepository.getBookList(req, criteria)
@@ -42,10 +46,6 @@ const getBookDetail = async (req) => {
     return {
         ...book,
         purchase_date: book.purchase_date ? formatDate(book.purchase_date) : null,
-        category: book.category_name,
-        status: book.status_name,
-        merchant: book.merchant_name,
-        publisher: book.publisher_name
     }
 }
 
