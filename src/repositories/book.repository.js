@@ -23,15 +23,7 @@ const SORTABLE_COLUMNS = {
 
 const sqlExec = {
     getBookList: 
-    `SELECT
-                b.book_id, 
-                b.title, 
-                b.author, 
-                b.price, 
-                c.category_name, 
-                m.merchant_name, 
-                p.publisher_name, 
-                s.status_name
+    `
             FROM dbo.Book AS b
                 LEFT JOIN dbo.Category AS c ON b.category_id = c.category_id
                 LEFT JOIN dbo.Merchant AS m ON b.merchant_id = m.merchant_id
@@ -71,6 +63,15 @@ const getBookList = async (req, criteria) => {
     const replacements = { search: keyword, pattern, offset, pageSize }
 
     let finalSql = `
+    SELECT
+                b.book_id, 
+                b.title, 
+                b.author, 
+                b.price, 
+                c.category_name, 
+                m.merchant_name, 
+                p.publisher_name, 
+                s.status_name
             ${sqlExec.getBookList}
             ${sqlExec.getBookListCriteria}
         `
@@ -98,9 +99,6 @@ const getBookList = async (req, criteria) => {
         OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY
     `
 
-    console.log('finalSql', finalSql    )
-    console.log({replacements})
-
     return query({
         sql: finalSql,
         replacements,
@@ -119,6 +117,8 @@ const getBookListTotalItem = async (req, criteria) => {
     const replacements = { search: keyword, pattern }
 
     let finalSql = `
+    SELECT
+            count(b.book_id) as total
             ${sqlExec.getBookList}
             ${sqlExec.getBookListCriteria}
         `

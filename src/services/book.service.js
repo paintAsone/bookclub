@@ -27,7 +27,7 @@ const getBookList = async (req) => {
 
     return {
         items,
-        totalItem: totalItem?.total_book || 0
+        totalItem: totalItem?.total || 0
     }
 
 }

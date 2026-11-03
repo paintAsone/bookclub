@@ -2,14 +2,12 @@ const property = {
   BODY: 'body',
   QUERY: 'query',
   PARAMS: 'params',
-  HEADERS: 'headers',
-  USERINFO: 'userInfo'
+  HEADERS: 'headers'
 };
 
 const validation = (schema, prop = property.BODY) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req[prop]);
-    console.log('validate', prop)
+    const { error } = schema.validate(req[prop]);
     if (error) {
       if (error.details[0].type === 'any.required') {
         return res.status(400).json({

@@ -76,7 +76,7 @@ const editBook = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully update book.'
         });
     } catch (error) {
@@ -100,7 +100,7 @@ const removeBook = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully remove book.'
         });
     } catch (error) {
@@ -184,7 +184,7 @@ const editBookReview = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully update book review.'
         });
     } catch (error) {
@@ -201,7 +201,7 @@ const removeBookReview = async (req, res) => {
     try {
         await service.removeBookReview(req)
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully delete book review.'
         });
     } catch (error) {

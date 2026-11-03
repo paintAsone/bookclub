@@ -77,7 +77,7 @@ const editWishlist = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully update wishlist.'
         });
     } catch (error) {
@@ -95,7 +95,7 @@ const removeWishlist = async (req, res) => {
         await service.removeWishlist(req)
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully remove wishlist.'
         });
     } catch (error) {
@@ -160,7 +160,7 @@ const editWishlistMerchant = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully update wishlist merchant.'
         });
     } catch (error) {
@@ -185,7 +185,7 @@ const removeWishlistMerchant = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20000',
+            code: '20001',
             message: 'Successfully remove wishlist merchant.'
         });
     } catch (error) {
@@ -210,7 +210,7 @@ const getCheapestWishlistPrice = async (req, res) => {
         }
 
         return res.status(200).json({
-            code: '20010',
+            code: '20001',
             message: 'Successfully with data.',
             result
         })
