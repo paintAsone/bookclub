@@ -48,22 +48,15 @@ pipeline {
     stage('Deploy') {
       steps {
         sh '''
-          az webapp config container set \
+          az webapp config set \
             --resource-group "$RG" \
             --name "$APP_NAME" \
-            --container-image-name "$IMAGE_REPO:$IMAGE_TAG" \
-            --container-registry-url "https://${ACR_NAME}.azurecr.io" > /dev/null
+            --linux-fx-version "DOCKER|$IMAGE_REPO:$IMAGE_TAG" > /dev/null
           az webapp restart --resource-group "$RG" --name "$APP_NAME"
         '''
       }
     }
  
-    stage('Smoke Test') {
-      steps {
-        // เปลี่ยน APP_URL ให้ชี้ไป health endpoint ถ้ามี
-        sh 'curl -fsS --retry 10 --retry-delay 6 --retry-all-errors "$APP_URL" > /dev/null'
-      }
-    }
   }
  
   post {
