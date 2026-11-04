@@ -10,10 +10,10 @@ pipeline {
   environment {
     RG         = 'book-club'                     
     APP_NAME   = 'book-club-backend'
-    ACR_NAME   = 'REPLACE_WITH_ACR_NAME'          // ชื่อ Azure Container Registry (ไม่ต้องใส่ .azurecr.io)
-    SUB_ID     = 'REPLACE_WITH_SUBSCRIPTION_ID'   // ไม่ใช่ secret เก็บในไฟล์ได้                  
+    ACR_NAME   = 'idp2026booklub'          
+    SUB_ID     = '9b417f38-2f62-44d0-ba34-c78f9b3e7bd5'           
     APP_URL    = "https://book-club-backend-eka7e3fkf5dkfdb4.southeastasia-01.azurewebsites.net"
-    IMAGE_REPO = "idp2026bookclub.azurecr.io/book-club-backend"
+    IMAGE_REPO = "idp2026booklub.azurecr.io/book-club-backend"
     IMAGE_TAG  = "0.0.1"
   }
 
